@@ -1,3 +1,5 @@
+# Convert current dataset format to include visibility of the landmark (1 or 0)
+
 import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
@@ -20,7 +22,7 @@ visibilityDictKeys = list(visibilityDict.keys())
 for rowIndex in range(len(df)): # Row loop
     rowValues = df.iloc[rowIndex].values
     for index, targetIndex in enumerate(targetDfIndex): # Landmark loop
-        # If both X and Y of a single landmark then the visibility of that landmark will be zero
+        # If both X and Y of a single landmark is zero then the visibility of that landmark will be zero
         if rowValues[targetIndex] <= 0 and rowValues[targetIndex - 1] <= 0:
             #print(f"{rowIndex} {columns[targetIndex]} {columns[targetIndex - 1]}")
             visibilityDict[visibilityDictKeys[index]].append(0)

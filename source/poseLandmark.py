@@ -1,8 +1,20 @@
+import torch
 import torch.nn as nn
+import torchvision.transforms as transforms
+import torchvision.transforms.v2 as v2
+
+import cv2
+from PIL import Image
 
 class poseLandmark(nn.Module):
     def __init__(self):
         super().__init__()
+        self.transformer = transforms.Compose([
+            v2.PILToTensor(),
+            v2.ToDtype(torch.float32),
+            v2.Resize(256)
+        ])
+
         self.centralFeatureOut = 1024
         self.centralCoordinateOut = 1024
         self.hiddenNodes = 32
@@ -53,6 +65,7 @@ class poseLandmark(nn.Module):
             nn.Dropout(0.4),
             nn.LeakyReLU(),
         )
+
         self.headCoordinate = nn.Sequential(
             nn.Linear(self.centralCoordinateOut, self.hiddenNodes),
             nn.Dropout(0.4),
@@ -176,6 +189,11 @@ class poseLandmark(nn.Module):
             nn.Linear(self.hiddenNodes, 2),
             nn.Sigmoid()
         )
+
+    def preprocessImage(self, imageMat):
+        colorConverted = cv2.cvtColor(imageMat, cv2.COLOR_BGR2RGB)
+        transformedImage = self.transformer(Image.fromarray(colorConverted).convert("RGB")) / 255
+        return transformedImage
 
     def forward(self, x):
         x = self.centralFeature(x)

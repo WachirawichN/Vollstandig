@@ -9,6 +9,11 @@ from PIL import Image
 from pathlib import Path
 
 
+parentDir = Path(__file__).parent
+videoPATH = "dataset-generator/data/video-converted/20240928_170644.mp4"
+modelPATH = "model/poseLandmark.pth"
+
+
 def predictLandmarks(model, transformedImage, device):
     transformedImage = transformedImage.unsqueeze(0) # Simulate being a batch
     transformedImage = transformedImage.to(device)
@@ -41,7 +46,7 @@ def connectPoseLandmarks(imageMat, pixelLandmarks, lineThickness):
     imageMat = cv2.line(imageMat, pixelLandmarks[2], pixelLandmarks[13], (0, 0, 255), lineThickness)
     return imageMat
 
-def readVideo(model, device, videoPATH, transformer):
+def readVideo(model, device, videoPATH):
     model.to(device)
 
     videoCap = cv2.VideoCapture(videoPATH)
@@ -52,8 +57,7 @@ def readVideo(model, device, videoPATH, transformer):
     success, imageMat = videoCap.read()
     while success:
         width, height = imageMat.shape[1], imageMat.shape[0]
-        colorConverted = cv2.cvtColor(imageMat, cv2.COLOR_BGR2RGB)
-        transformedImage = transformer(Image.fromarray(colorConverted).convert("RGB")) / 255
+        transformedImage = model.preprocessImage(imageMat)
 
         landmarks = predictLandmarks(model, transformedImage, device)
         pixelLandmarks = []
@@ -78,18 +82,10 @@ def readVideo(model, device, videoPATH, transformer):
     cv2.destroyAllWindows()
 
 
-parentDir = Path(__file__).parent
-videoDir = parentDir.joinpath("dataset-generator/data/video-converted/20240928_105700.mp4")
-
 model = poseLandmark()
-model.load_state_dict(torch.load(parentDir.joinpath("model/poseLandmarks-Temp.pth")))
-transformer = transforms.Compose([
-    v2.PILToTensor(),
-    v2.ToDtype(torch.float32),
-    v2.Resize(256)
-])
+model.load_state_dict(torch.load(parentDir.joinpath(modelPATH)))
 device = "cpu"
 if torch.cuda.is_available():
     device = "cuda"
     
-readVideo(model, device, videoDir, transformer)
+readVideo(model, device, parentDir.joinpath(videoPATH))
